@@ -39,14 +39,13 @@ class User(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name', 'username']
 
-    def __str__(self):
-        """Строковое представление объекта."""
-        return self.username
-
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
         ordering = ('username',)
+
+    def __str__(self):
+        return self.username
 
 
 class Subscription(models.Model):
@@ -75,5 +74,4 @@ class Subscription(models.Model):
         ]
 
     def __str__(self):
-        """Строковое представление объекта."""
         return f'{self.user.username} подписан на {self.following.username}'

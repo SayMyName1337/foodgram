@@ -26,4 +26,9 @@ class SubscriptionAdmin(admin.ModelAdmin):
         'user',
         'following',
     )
-    search_fields = ('user__username', )
+    search_fields = (
+        'user__username',
+        'following__username',
+    )
+    list_per_page = 25
+    empty_value_display = 'Пусто'
