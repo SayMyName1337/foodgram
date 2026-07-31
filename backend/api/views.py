@@ -21,7 +21,7 @@ from recipes.models import (
     IngredientInRecipe,
 )
 from .permissions import IsAuthorOrReadOnly
-from .filters import RecipeFilter
+from .filters import RecipeFilter, IngredientFilter
 from .serializers import (
     TagSerializer,
     IngredientSerializer,
@@ -46,6 +46,8 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     pagination_class = None
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter
 
 
 class UserViewSet(djoser.views.UserViewSet):
@@ -178,10 +180,20 @@ class UserViewSet(djoser.views.UserViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """Вьюсет для управления рецептами."""
-    queryset = Recipe.objects.all()
     permission_classes = (IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
+
+    def get_queryset(self):
+        """
+        Возвращает оптимизированный queryset для рецептов.
+
+        Returns:
+            QuerySet: оптимизированный queryset рецептов.
+        """
+        return Recipe.objects.select_related('author').prefetch_related(
+            'tags', 'ingredientinrecipe_set__ingredient'
+        )
 
     def get_serializer_class(self):
         """

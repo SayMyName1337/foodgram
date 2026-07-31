@@ -1,6 +1,6 @@
 from django_filters import rest_framework as filters
 
-from recipes.models import Recipe, Tag
+from recipes.models import Recipe, Tag, Ingredient
 
 
 class RecipeFilter(filters.FilterSet):
@@ -18,7 +18,7 @@ class RecipeFilter(filters.FilterSet):
 
     class Meta:
         model = Recipe
-        fields = ('author', 'tags')
+        fields = ('author',)
 
     def filter_is_favorited(self, queryset, name, value):
         user = self.request.user
@@ -31,3 +31,14 @@ class RecipeFilter(filters.FilterSet):
         if value and user.is_authenticated:
             return queryset.filter(shoppingcart__user=user)
         return queryset
+
+
+class IngredientFilter(filters.FilterSet):
+    """Фильтрация ингредиентов по вхождению в начало названия."""
+    name = filters.CharFilter(
+        field_name='name', lookup_expr='istartswith'
+    )
+
+    class Meta:
+        model = Ingredient
+        fields = ('name',)
