@@ -1,0 +1,36 @@
+# Виртуальные окружения
+.env
+env
+venv
+ENV
+env.bak
+venv.bak
+
+# Локальные файлы конфигурации и базы данных
+db.sqlite3
+*.sqlite3
+local_settings.py
+secrets.json
+
+# Кэш Python и скомпилированные файлы
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Логи и отчеты
+*.log
+*.swp
+.pytest_cache
+.coverage
+htmlcov/
+
+# Система контроля версий
+.git
+.gitignore
+
+# Файлы IDE и Docker
+.idea/
+.vscode/
+.DS_Store
+docker-compose.dev.yml

@@ -64,16 +64,43 @@ class RecipeAdmin(admin.ModelAdmin):
 
     @admin.display(description='Теги')
     def get_tags(self, obj):
+        """
+        Вычисляет тег рецепта.
+
+        Args:
+            obj: рецепт.
+
+        Returns:
+            Теги рецепта.
+        """
         return ', '.join(tag.name for tag in obj.tags.all())
 
     @admin.display(description='Ингредиенты')
     def get_ingredients(self, obj):
+        """
+        Вычисляет состав ингредиентов рецепта.
+
+        Args:
+            obj: рецепт.
+
+        Returns:
+            Состав ингредиентов.
+        """
         return ', '.join(
             ingredient.name for ingredient in obj.ingredients.all()
         )
 
     @admin.display(description='Добавлено в избранное')
     def favorites_count(self, obj):
+        """
+        Вычисляет количество рецептов в избранном.
+
+        Args:
+            obj: пользователь.
+
+        Returns:
+            Количество рецептов в избранном.
+        """
         return obj.favorite.count()
 
 

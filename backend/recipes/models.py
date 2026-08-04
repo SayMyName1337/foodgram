@@ -25,6 +25,7 @@ class Tag(models.Model):
         ordering = ('name',)
 
     def __str__(self):
+        """Строковое представление объекта."""
         return self.name
 
 
@@ -51,6 +52,7 @@ class Ingredient(models.Model):
         ordering = ('name',)
 
     def __str__(self):
+        """Строковое представление объекта."""
         return self.name
 
 
@@ -96,6 +98,7 @@ class Recipe(models.Model):
         ordering = ('-pub_date',)
 
     def __str__(self):
+        """Строковое представление объекта."""
         return self.name
 
 
@@ -126,6 +129,7 @@ class IngredientInRecipe(models.Model):
         verbose_name_plural = 'Ингредиенты рецепта'
 
     def __str__(self):
+        """Строковое представление объекта."""
         return f'{self.recipe} - {self.ingredient} - {self.amount}'
 
 
@@ -155,6 +159,7 @@ class UserRecipeRelation(models.Model):
         ]
 
     def __str__(self):
+        """Строковое представление объекта."""
         return f'{self.user} - {self.recipe}'
 
 

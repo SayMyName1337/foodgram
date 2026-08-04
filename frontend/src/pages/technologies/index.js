@@ -6,9 +6,9 @@ const Technologies = () => {
   
   return <Main>
     <MetaTags>
-      <title>О проекте</title>
+      <title>Технологии</title>
       <meta name="description" content="Фудграм - Технологии" />
-      <meta property="og:title" content="О проекте" />
+      <meta property="og:title" content="Технологии" />
     </MetaTags>
     
     <Container>
@@ -29,6 +29,12 @@ const Technologies = () => {
               </li>
               <li className={styles.textItem}>
                 Djoser
+              </li>
+              <li className={styles.textItem}>
+                Docker
+              </li>
+              <li className={styles.textItem}>
+                PostgreSQL
               </li>
             </ul>
           </div>
