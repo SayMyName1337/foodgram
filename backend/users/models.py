@@ -2,7 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import F, Q
 
-from . import constants
+from . import constants, validators
 
 
 class User(AbstractUser):
@@ -22,6 +22,7 @@ class User(AbstractUser):
         max_length=constants.USERNAME_MAX_LENGTH,
         help_text='Введите никнейм',
         unique=True,
+        validators=[validators.validate_username_not_forbidden],
     )
     email = models.EmailField(
         verbose_name='Электронная почта',
