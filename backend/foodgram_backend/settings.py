@@ -14,6 +14,8 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [host for host in os.getenv('ALLOWED_HOSTS', '').split(',') if host]
 
+CSRF_TRUSTED_ORIGINS = [token for token in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if token]
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
