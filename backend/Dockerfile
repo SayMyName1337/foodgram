@@ -2,13 +2,13 @@ FROM python:3.12
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY backend/requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY backend/ .
 
-COPY entrypoint.sh .
+COPY data/ /app/data/
 
 RUN chmod +x entrypoint.sh
 

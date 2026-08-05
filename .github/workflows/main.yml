@@ -42,7 +42,8 @@ jobs:
       - name: Push to Docker Hub
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
+          context: .
+          file: backend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/foodgram_backend:latest
 
@@ -94,6 +95,3 @@ jobs:
             sudo docker compose -f docker-compose.production.yml pull
             sudo docker compose -f docker-compose.production.yml down
             sudo docker compose -f docker-compose.production.yml up -d
-            sudo docker compose -f docker-compose.production.yml exec backend python manage.py migrate
-            sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic --noinput
-            sudo docker compose -f docker-compose.production.yml exec backend python manage.py load_json
