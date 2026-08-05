@@ -75,7 +75,7 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-      - name: Copy docker-compose.production.yml and nginx.conf via ssh
+      - name: Copy compose and nginx config via ssh
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -83,6 +83,15 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           source: "infra/docker-compose.production.yml,infra/nginx.conf"
           target: "foodgram"
+          strip_components: 1
+      - name: Copy API docs via ssh
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "docs/openapi-schema.yml,docs/redoc.html"
+          target: "foodgram/docs"
           strip_components: 1
       - name: Executing remote ssh commands to deploy
         uses: appleboy/ssh-action@master
