@@ -237,6 +237,31 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             value, value, 'один тег'
         )
 
+    def validate(self, data):
+        """
+        Требует поля 'ingredients' и 'tags' в запросе, даже при
+        частичном обновлении (PATCH), где DRF по умолчанию
+        делает все поля необязательными.
+
+        Args:
+            data: провалидированные данные.
+
+        Returns:
+            dict: исходные данные, если проверка пройдена.
+
+        Raises:
+            serializers.ValidationError: если поля отсутствуют в запросе.
+        """
+        if 'ingredients' not in self.initial_data:
+            raise serializers.ValidationError(
+                {'ingredients': 'Это поле обязательно.'}
+            )
+        if 'tags' not in self.initial_data:
+            raise serializers.ValidationError(
+                {'tags': 'Это поле обязательно.'}
+            )
+        return data
+
     def create(self, validated_data):
         """
         Создаёт новый рецепт с переданными тегами и ингредиентами.

@@ -55,6 +55,12 @@ class UserViewSet(djoser.views.UserViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+    def get_permissions(self):
+        """Требует аутентификации для действия 'me'."""
+        if self.action == 'me':
+            self.permission_classes = [IsAuthenticated]
+        return super().get_permissions()
+
     @action(
         detail=False,
         methods=['put', 'delete'],
