@@ -83,6 +83,14 @@ class AvatarSerializer(serializers.ModelSerializer):
         model = User
         fields = ('avatar',)
 
+    def validate_avatar(self, value):
+        """Проверяет, что аватар передан и не пуст."""
+        if not value:
+            raise serializers.ValidationError(
+                'Аватар не может быть пустым.'
+            )
+        return value
+
 
 class RecipeIngredientReadSerializer(serializers.ModelSerializer):
     """Сериализатор ингредиента внутри рецепта (с количеством)."""
@@ -201,7 +209,9 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             )
         return value
 
-    def _validate_not_empty_and_unique(self, items, keys, error_prefix):
+    def _validate_not_empty_and_unique(
+        self, items, keys, singular, plural
+    ):
         """
         Проверяет, что список не пуст и все элементы
         уникальны по заданному ключу.
@@ -209,8 +219,10 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         Args:
             items: список элементов для проверки.
             keys: список ключей (или сами элементы) для проверки уникальности.
-            error_prefix: строка, используемая в сообщении об ошибке
-                          (например, 'один ингредиент').
+            singular: название элемента в единственном числе
+                      (например, 'ингредиент') для сообщения о пустом списке.
+            plural: название элемента во множественном числе
+                    (например, 'ингредиенты') для сообщения о повторах.
 
         Returns:
             list: исходный список items, если проверка пройдена.
@@ -221,11 +233,11 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         """
         if not items:
             raise serializers.ValidationError(
-                f'Нужно указать хотя бы {error_prefix}.'
+                f'Нужно указать хотя бы один {singular}.'
             )
         if len(keys) != len(set(keys)):
             raise serializers.ValidationError(
-                f'{error_prefix.capitalize()} не должны повторяться.'
+                f'{plural.capitalize()} не должны повторяться.'
             )
         return items
 
@@ -242,9 +254,9 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         tags = data['tags']
         ingredient_ids = [item['ingredient'].id for item in ingredients]
         self._validate_not_empty_and_unique(
-            ingredients, ingredient_ids, 'один ингредиент'
+            ingredients, ingredient_ids, 'ингредиент', 'ингредиенты'
         )
-        self._validate_not_empty_and_unique(tags, tags, 'один тег')
+        self._validate_not_empty_and_unique(tags, tags, 'тег', 'теги')
         return data
 
     def create(self, validated_data):
