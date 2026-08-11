@@ -112,7 +112,7 @@ REST_FRAMEWORK = {
         'user': '10000/day',
         'anon': '1000/day',
     },
-    'DEFAULT_PAGINATION_CLASS': 'api.pagination.CustomPageNumberPagination',
+    'DEFAULT_PAGINATION_CLASS': 'api.pagination.PageLimitPagination',
 }
 
 DJOSER = {
@@ -134,6 +134,7 @@ DJOSER = {
         'current_user': 'api.serializers.UserSerializer',
     },
     'HIDE_USERS': False,
+    'LOGIN_FIELD': 'email',
 }
 
 
@@ -156,7 +157,3 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MEDIA_URL = '/media/'
 
 MEDIA_ROOT = BASE_DIR / 'media'
-
-FORBIDDEN_USERNAMES = (
-    'me',
-)

@@ -29,8 +29,10 @@ from .serializers import (
     AvatarSerializer,
     RecipeReadSerializer,
     RecipeWriteSerializer,
-    RecipeMinifiedSerializer,
     UserWithRecipesSerializer,
+    SubscriptionSerializer,
+    FavoriteSerializer,
+    ShoppingCartSerializer,
 )
 
 
@@ -55,102 +57,63 @@ class UserViewSet(djoser.views.UserViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-    def get_permissions(self):
-        """Требует аутентификации для действия 'me'."""
-        if self.action == 'me':
-            self.permission_classes = [IsAuthenticated]
-        return super().get_permissions()
+    @action(
+        ["get"],
+        detail=False,
+        permission_classes=[IsAuthenticated]
+    )
+    def me(self, request, *args, **kwargs):
+        """Возвращает профиль текущего пользователя. Доступно только GET."""
+        return super().me(request, *args, **kwargs)
 
     @action(
         detail=False,
-        methods=['put', 'delete'],
+        methods=['put'],
         url_path='me/avatar',
         permission_classes=[IsAuthenticated],
     )
     def avatar(self, request):
-        """
-        Управление аватаром текущего пользователя.
+        """Загружает или обновляет аватар текущего пользователя."""
+        serializer = AvatarSerializer(
+            request.user,
+            data=request.data,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-        PUT /me/avatar/ – загружает или обновляет аватар.
-        DELETE /me/avatar/ – удаляет аватар (устанавливает None).
-
-        Args:
-            request: Объект HTTP-запроса.
-
-        Returns:
-            Response:
-                - PUT: сериализованные данные аватара (статус 200 OK).
-                - DELETE: пустой ответ (статус 204 No Content).
-
-        Raises:
-            ValidationError: если переданные данные невалидны.
-            PermissionDenied: если пользователь не аутентифицирован.
-        """
-        if request.method == 'PUT':
-            serializer = AvatarSerializer(
-                request.user,
-                data=request.data,
-                context={'request': request}
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
+    @avatar.mapping.delete
+    def delete_avatar(self, request):
+        """Удаляет аватар текущего пользователя."""
         request.user.avatar = None
         request.user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=True,
-        methods=['post', 'delete'],
+        methods=['post'],
         permission_classes=[IsAuthenticated],
     )
     def subscribe(self, request, id=None):
-        """
-        Управление подпиской на автора.
-
-        Args:
-            request: объект HTTP-запроса.
-            id: идентификатор автора (из URL).
-
-        Returns:
-            Response:
-                - POST: сериализованные данные автора с его рецептами
-                (статус 201 Created) или ошибка, если подписка невозможна.
-                - DELETE: пустой ответ (статус 204 No Content)
-                или ошибка, если подписки не существовало.
-
-        Raises:
-            Http404: если автор с указанным id не найден.
-            ValidationError: если попытка подписаться на самого себя.
-            PermissionDenied: если пользователь не аутентифицирован.
-        """
+        """Подписывает текущего пользователя на автора."""
         author = get_object_or_404(User, id=id)
-        user = request.user
+        serializer = SubscriptionSerializer(
+            data={'user': request.user.id, 'following': author.id},
+            context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        if request.method == 'POST':
-            if user == author:
-                return Response(
-                    {'errors': 'Нельзя подписаться на самого себя.'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            if Subscription.objects.filter(
-                user=user, following=author
-            ).exists():
-                return Response(
-                    {'errors': 'Вы уже подписаны на этого автора.'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            Subscription.objects.create(user=user, following=author)
-            serializer = UserWithRecipesSerializer(
-                author, context={'request': request}
-            )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
+    @subscribe.mapping.delete
+    def delete_subscribe(self, request, id=None):
+        """Отписывает текущего пользователя от автора."""
+        author = get_object_or_404(User, id=id)
         deleted_count, _ = Subscription.objects.filter(
-            user=user, following=author
+            user=request.user, following=author
         ).delete()
-        if deleted_count == 0:
+        if not deleted_count:
             return Response(
                 {'errors': 'Вы не были подписаны на этого автора.'},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -214,10 +177,36 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeReadSerializer
         return RecipeWriteSerializer
 
-    def _add_or_remove(self, request, pk, model, error_message):
+    def _add_relation(self, request, pk, serializer_class):
         """
-        Вспомогательный метод для добавления или удаления рецепта
-        из связанной модели (избранное / список покупок).
+        Создаёт связь рецепта с текущим пользователем
+        (избранное / список покупок) через переданный сериализатор.
+
+        Args:
+            request: объект HTTP-запроса.
+            pk: идентификатор рецепта.
+            serializer_class: класс сериализатора (Favorite/ShoppingCart).
+
+        Returns:
+            Response: сериализованные данные рецепта, статус 201 Created.
+
+        Raises:
+            Http404: если рецепт с указанным pk не найден.
+            ValidationError: если рецепт уже добавлен.
+        """
+        recipe = get_object_or_404(Recipe, id=pk)
+        serializer = serializer_class(
+            data={'user': request.user.id, 'recipe': recipe.id},
+            context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def _remove_relation(self, request, pk, model, error_message):
+        """
+        Удаляет связь рецепта с текущим пользователем
+        (избранное / список покупок).
 
         Args:
             request: объект HTTP-запроса.
@@ -227,34 +216,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
                            (например, 'избранном' или 'списке покупок').
 
         Returns:
-            Response:
-                - POST: сериализованные данные рецепта (статус 201 Created)
-                        или ошибка, если рецепт уже добавлен.
-                - DELETE: пустой ответ (статус 204 No Content)
-                          или ошибка, если рецепта не было в списке.
+            Response: пустой ответ (статус 204 No Content)
+                      или ошибка, если рецепта не было в списке.
 
         Raises:
             Http404: если рецепт с указанным pk не найден.
         """
         recipe = get_object_or_404(Recipe, id=pk)
-        user = request.user
-
-        if request.method == 'POST':
-            if model.objects.filter(user=user, recipe=recipe).exists():
-                return Response(
-                    {'errors': f'Рецепт уже в {error_message}.'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            model.objects.create(user=user, recipe=recipe)
-            serializer = RecipeMinifiedSerializer(
-                recipe, context={'request': request}
-            )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
         deleted_count, _ = model.objects.filter(
-            user=user, recipe=recipe
+            user=request.user, recipe=recipe
         ).delete()
-        if deleted_count == 0:
+        if not deleted_count:
             return Response(
                 {'errors': f'Рецепта не было в {error_message}.'},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -263,45 +235,31 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=['post', 'delete'],
+        methods=['post'],
         permission_classes=[IsAuthenticated],
     )
     def favorite(self, request, pk=None):
-        """
-        Добавляет или удаляет рецепт из избранного текущего пользователя.
+        """Добавляет рецепт в избранное текущего пользователя."""
+        return self._add_relation(request, pk, FavoriteSerializer)
 
-        POST /recipes/{id}/favorite/ – добавляет рецепт в избранное.
-        DELETE /recipes/{id}/favorite/ – удаляет рецепт из избранного.
-
-        Args:
-            request: объект HTTP-запроса.
-            pk: идентификатор рецепта.
-
-        Returns:
-            Response: результат выполнения _add_or_remove.
-        """
-        return self._add_or_remove(request, pk, Favorite, 'избранном')
+    @favorite.mapping.delete
+    def delete_favorite(self, request, pk=None):
+        """Удаляет рецепт из избранного текущего пользователя."""
+        return self._remove_relation(request, pk, Favorite, 'избранном')
 
     @action(
         detail=True,
-        methods=['post', 'delete'],
+        methods=['post'],
         permission_classes=[IsAuthenticated],
     )
     def shopping_cart(self, request, pk=None):
-        """
-        Добавляет или удаляет рецепт из списка покупок текущего пользователя.
+        """Добавляет рецепт в список покупок текущего пользователя."""
+        return self._add_relation(request, pk, ShoppingCartSerializer)
 
-        POST /recipes/{id}/shopping_cart/ – добавляет рецепт в список покупок.
-        DELETE /recipes/{id}/shopping_cart/ – удаляет рецепт из списка покупок.
-
-        Args:
-            request: объект HTTP-запроса.
-            pk: идентификатор рецепта.
-
-        Returns:
-            Response: результат выполнения _add_or_remove.
-        """
-        return self._add_or_remove(
+    @shopping_cart.mapping.delete
+    def delete_shopping_cart(self, request, pk=None):
+        """Удаляет рецепт из списка покупок текущего пользователя."""
+        return self._remove_relation(
             request, pk, ShoppingCart, 'списке покупок'
         )
 
@@ -365,5 +323,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             Http404: если рецепт не найден.
         """
         recipe = get_object_or_404(Recipe, id=pk)
-        short_link = request.build_absolute_uri(f'/s/{recipe.id}/')
+        short_link = request.build_absolute_uri(
+            f'/s/{recipe.short_link}/'
+        )
         return Response({'short-link': short_link})

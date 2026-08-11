@@ -1,8 +1,9 @@
 from rest_framework.pagination import PageNumberPagination
 
+from .constants import DEFAULT_PAGE_SIZE
 
-class CustomPageNumberPagination(PageNumberPagination):
-    """Кастомная пагинация."""
-    page_size = 6
+
+class PageLimitPagination(PageNumberPagination):
+    """Пагинация с настраиваемым размером страницы."""
+    page_size = DEFAULT_PAGE_SIZE
     page_size_query_param = 'limit'
-    max_page_size = 100

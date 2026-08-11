@@ -1,9 +1,20 @@
-from django.core.validators import MinValueValidator
+import random
+import string
+
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import UniqueConstraint
 
 from . import constants
 from users.models import User
+
+
+def generate_short_link_code():
+    """Генерирует случайный код для короткой ссылки на рецепт."""
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(
+        random.choices(alphabet, k=constants.SHORT_LINK_LENGTH)
+    )
 
 
 class Tag(models.Model):
@@ -83,13 +94,22 @@ class Recipe(models.Model):
     text = models.TextField(
         verbose_name='Описание',
     )
-    cooking_time = models.IntegerField(
+    cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время приготовления (в минутах)',
-        validators=[MinValueValidator(constants.MIN_COOKING_TIME), ]
+        validators=[
+            MinValueValidator(constants.MIN_COOKING_TIME),
+            MaxValueValidator(constants.MAX_COOKING_TIME),
+        ]
     )
     pub_date = models.DateTimeField(
         verbose_name='Дата публикации',
         auto_now_add=True
+    )
+    short_link = models.CharField(
+        max_length=constants.SHORT_LINK_LENGTH,
+        unique=True,
+        blank=True,
+        verbose_name='Код короткой ссылки',
     )
 
     class Meta:
@@ -100,6 +120,15 @@ class Recipe(models.Model):
     def __str__(self):
         """Строковое представление объекта."""
         return self.name
+
+    def save(self, *args, **kwargs):
+        """Генерирует уникальный код короткой ссылки при создании."""
+        if not self.short_link:
+            code = generate_short_link_code()
+            while Recipe.objects.filter(short_link=code).exists():
+                code = generate_short_link_code()
+            self.short_link = code
+        super().save(*args, **kwargs)
 
 
 class IngredientInRecipe(models.Model):
@@ -114,8 +143,11 @@ class IngredientInRecipe(models.Model):
         on_delete=models.CASCADE,
         verbose_name='Ингредиент',
     )
-    amount = models.IntegerField(
-        validators=[MinValueValidator(constants.MIN_INGREDIENT_AMOUNT)],
+    amount = models.PositiveSmallIntegerField(
+        validators=[
+            MinValueValidator(constants.MIN_INGREDIENT_AMOUNT),
+            MaxValueValidator(constants.MAX_INGREDIENT_AMOUNT),
+        ]
     )
 
     class Meta:

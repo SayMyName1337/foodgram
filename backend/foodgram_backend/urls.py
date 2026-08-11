@@ -13,5 +13,5 @@ urlpatterns = [
         TemplateView.as_view(template_name='redoc.html'),
         name='redoc'
     ),
-    path('s/<int:pk>/', redirect_to_recipe, name='short-link'),
+    path('s/<str:short_link>/', redirect_to_recipe, name='short-link'),
 ]

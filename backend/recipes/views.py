@@ -1,9 +1,12 @@
-from django.shortcuts import get_object_or_404, redirect
+from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404
 
 from .models import Recipe
 
 
-def redirect_to_recipe(request, pk):
+def redirect_to_recipe(request, short_link):
     """Редирект с короткой ссылки на страницу рецепта во фронтенде."""
-    get_object_or_404(Recipe, id=pk)
-    return redirect(f'/recipes/{pk}/')
+    recipe = get_object_or_404(Recipe, short_link=short_link)
+    return HttpResponseRedirect(
+        request.build_absolute_uri(f'/recipes/{recipe.id}/')
+    )
