@@ -388,7 +388,6 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
         fields = ('user', 'following')
-        validators = []
 
     def validate(self, data):
         user = data['user']
@@ -416,7 +415,6 @@ class FavoriteShoppingCartSerializer(serializers.ModelSerializer):
 
     class Meta:
         fields = ('user', 'recipe')
-        validators = []
 
     def validate(self, data):
         if self.Meta.model.objects.filter(**data).exists():

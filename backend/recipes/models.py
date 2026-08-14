@@ -9,14 +9,6 @@ from . import constants
 from users.models import User
 
 
-def generate_short_link_code():
-    """Генерирует случайный код для короткой ссылки на рецепт."""
-    alphabet = string.ascii_letters + string.digits
-    return ''.join(
-        random.choices(alphabet, k=constants.SHORT_LINK_LENGTH)
-    )
-
-
 class Tag(models.Model):
     """Модель тега."""
     name = models.CharField(
@@ -121,12 +113,22 @@ class Recipe(models.Model):
         """Строковое представление объекта."""
         return self.name
 
+    @classmethod
+    def generate_short_link(cls):
+        """Генерирует случайный код для короткой ссылки на рецепт."""
+        alphabet = string.ascii_letters + string.digits
+        return ''.join(
+            random.choices(alphabet, k=constants.SHORT_LINK_LENGTH)
+        )
+
     def save(self, *args, **kwargs):
-        """Генерирует уникальный код короткой ссылки при создании."""
         if not self.short_link:
-            code = generate_short_link_code()
-            while Recipe.objects.filter(short_link=code).exists():
-                code = generate_short_link_code()
+            existing_codes = set(
+                Recipe.objects.values_list('short_link', flat=True)
+            )
+            code = self.generate_short_link()
+            while code in existing_codes:
+                code = self.generate_short_link()
             self.short_link = code
         super().save(*args, **kwargs)
 
