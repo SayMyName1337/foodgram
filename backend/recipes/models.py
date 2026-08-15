@@ -113,14 +113,6 @@ class Recipe(models.Model):
         """Строковое представление объекта."""
         return self.name
 
-    @classmethod
-    def generate_short_link(cls):
-        """Генерирует случайный код для короткой ссылки на рецепт."""
-        alphabet = string.ascii_letters + string.digits
-        return ''.join(
-            random.choices(alphabet, k=constants.SHORT_LINK_LENGTH)
-        )
-
     def save(self, *args, **kwargs):
         if not self.short_link:
             existing_codes = set(
@@ -131,6 +123,14 @@ class Recipe(models.Model):
                 code = self.generate_short_link()
             self.short_link = code
         super().save(*args, **kwargs)
+
+    @classmethod
+    def generate_short_link(cls):
+        """Генерирует случайный код для короткой ссылки на рецепт."""
+        alphabet = string.ascii_letters + string.digits
+        return ''.join(
+            random.choices(alphabet, k=constants.SHORT_LINK_LENGTH)
+        )
 
 
 class IngredientInRecipe(models.Model):
